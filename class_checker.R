@@ -5,13 +5,17 @@ library(stringr)
 library(mailR)
 library(xtable)
 
+if(file.exists(".Renviron")) {
+  readRenviron(".Renviron")
+}
+
 paste(Sys.time(), "Checking for new classes")
 
 TIME_PATTERN <- "([1]{0,1}\\d:\\d{2} [AP]M - \\d{1,2}:\\d{2} [AP]M)"
 BOAT_PATTERN <- "^([A-Z][A-z ]+)([A-Z].*)$"
 CLASS_TYPES <- c("Cruise", "Maintenance Sail",
                  "Orientation", "Refresher", "TillerTime")
-JOIN_VARS <- c("Type", "Date", "Times", "Boat type", "Boat name")
+CHANGE_VARS <- c("Seats taken", "Status")
 
 if(file.exists("classes.Rda") == TRUE) {
  load("classes.Rda")
@@ -40,11 +44,12 @@ new_classes <- classes0 %>%
     temp_header  = X1 %in% CLASS_TYPES,
     `Type`       = ifelse(temp_header, X1, NA),
     `Date`       = as.Date(str_replace(X1, TIME_PATTERN, ""), "%A, %B %d, %Y"),
-    `Date`       = as.character(`Date`, format = "%a %b %d"),
+    `Day`        = as.character(`Date`, format = "%A"),
+    `Date`       = as.character(`Date`),
     `Times`      = sapply(X1, function(x) str_match(x, TIME_PATTERN)[2]),
     `Boat type`  = sapply(X2, function(x) str_match(x, BOAT_PATTERN)[3]),
     `Boat name`  = sapply(X2, function(x) str_match(x, BOAT_PATTERN)[2]),
-    `Seats taken`= str_count(X3, "\r\n") + 1,
+    `Seats taken`= as.character(str_count(X3, "\r\n") + 1),
     `Status`     = X4
   ) %>%
   fill(Type) %>%
@@ -58,25 +63,43 @@ if(is.null(old_classes)) {
   old_classes <- new_classes[0,]
 }
 
-to_email <- new_classes %>%
-  full_join(select(old_classes, -`Seats taken`), by = JOIN_VARS) %>%
-  mutate(
-    Change  = Status.x != Status.y,
-    Change  = ifelse(is.na(Change), TRUE, Change)
-  ) %>%
+join_vars <- setdiff(names(new_classes), CHANGE_VARS)
+to_email0 <- new_classes %>%
+  full_join(old_classes, by = join_vars, suffix=c(".new", ".old")) %>%
+  mutate(Change = FALSE)
+
+detect_change <- function(var, df = to_email0) {
+  var.new <- paste0(var, ".new")
+  var.old <- paste0(var, ".old")
+
+  if(var.old != var.new) {
+    df[var] <- as.character(
+      sapply(df[var.new], function(x) paste0("<font color='red'>", x, "</font>")))
+  } else {
+    df[var] <- df[var.new]
+  }
+  df[var.old] <- df[var.new] <- NULL
+  return(df)
+}
+for(var in CHANGE_VARS) {
+  to_email0 <- detect_change(var)
+  to_email0$Change <- grepl("font color", to_email0[var]) | to_email0$Change
+}
+
+to_email <- to_email0 %>%
   filter(Type == "TillerTime") %>%
   filter(Change == TRUE) %>%
-  select(-Status.y, -Change) %>%
-  rename(Status = Status.x)
+  select(-Change)
 
 if(nrow(to_email) > 0) {
   paste(Sys.time(), "Sending email")
   signup_link <- paste0("<a href='",
                         "https://my.sailchicago.org/SeatReservation/SeatAvailability",
                         "'>Sign up</a>")
-  email_body <- paste0(print(xtable(to_email), type="html"),
-                          "<br><br>",
-                          signup_link)
+  email_body <- paste0(
+    print(xtable(to_email), type="html", sanitize.text.function=function(x){x}),
+    "<br><br>",
+    signup_link)
   send.mail(from = Sys.getenv("EMAIL_FROM"),
             to = strsplit(Sys.getenv("CC_RECIPIENTS"), split=",")[[1]],
             subject = "Changes to Sail Chicago Classes",
