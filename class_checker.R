@@ -72,18 +72,20 @@ detect_change <- function(var, df = to_email0) {
   var.new <- paste0(var, ".new")
   var.old <- paste0(var, ".old")
 
-  if(var.old != var.new) {
-    df[var] <- as.character(
-      sapply(df[var.new], function(x) paste0("<font color='red'>", x, "</font>")))
-  } else {
-    df[var] <- df[var.new]
-  }
+  df[var] <- ifelse(df[[var.old]] != df[[var.new]] |
+                      is.na(df[[var.old]]) |
+                      is.na(df[[var.new]]),
+                    paste0("<font color='red'>",
+                           df[[var.old]], " &#8594; ", df[[var.new]],
+                           "</font>"),
+                    df[[var.new]])
+
   df[var.old] <- df[var.new] <- NULL
   return(df)
 }
 for(var in CHANGE_VARS) {
   to_email0 <- detect_change(var)
-  to_email0$Change <- grepl("font color", to_email0[var]) | to_email0$Change
+  to_email0$Change <- grepl("font color", to_email0[[var]]) | to_email0$Change
 }
 
 to_email <- to_email0 %>%
@@ -97,7 +99,10 @@ if(nrow(to_email) > 0) {
                         "https://my.sailchicago.org/SeatReservation/SeatAvailability",
                         "'>Sign up</a>")
   email_body <- paste0(
-    print(xtable(to_email), type="html", sanitize.text.function=function(x){x}),
+    print(xtable(to_email),
+          type="html",
+          sanitize.text.function=function(x){x},
+          include.rownames=FALSE),
     "<br><br>",
     signup_link)
   send.mail(from = Sys.getenv("EMAIL_FROM"),
