@@ -76,8 +76,8 @@ detect_change <- function(var, df = to_email0) {
                       is.na(df[[var.old]]) |
                       is.na(df[[var.new]]),
                     paste0("<font color='red'>",
-                           df[[var.old]], " &#8594; ", df[[var.new]],
-                           "</font>"),
+                           df[[var.old]], " &#8594; <b>", df[[var.new]],
+                           "</b></font>"),
                     df[[var.new]])
 
   df[var.old] <- df[var.new] <- NULL
