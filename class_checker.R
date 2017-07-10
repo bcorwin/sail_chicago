@@ -41,6 +41,7 @@ class_table <- html_nodes(x = page, xpath = '//*[@id="content_inner_wrapper"]/di
 classes0 <- html_table(class_table)[[1]]
 
 new_classes <- classes0 %>%
+  separate(X3, c("Skipper"), sep = "\r\n *", remove = FALSE, extra = "drop") %>%
   transmute(
     temp_header  = X1 %in% CLASS_TYPES,
     `Type`       = ifelse(temp_header, X1, NA),
@@ -50,6 +51,7 @@ new_classes <- classes0 %>%
     `Times`      = sapply(X1, function(x) str_match(x, TIME_PATTERN)[2]),
     `Boat type`  = sapply(X2, function(x) str_match(x, BOAT_PATTERN)[3]),
     `Boat name`  = sapply(X2, function(x) str_match(x, BOAT_PATTERN)[2]),
+    `Skipper`    = gsub(" (Skipper)", "", Skipper, fixed=TRUE),
     `Seats taken`= as.character(str_count(X3, "\r\n") + 1),
     `Status`     = X4
   ) %>%
