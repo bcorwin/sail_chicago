@@ -16,6 +16,7 @@ BOAT_PATTERN <- "^([A-Z][A-z ]+)([A-Z].*)$"
 CLASS_TYPES <- c("Cruise", "Maintenance Sail",
                  "Orientation", "Refresher", "TillerTime")
 CHANGE_VARS <- c("Seats taken", "Status")
+SUBJECT <- "Changes to Sail Chicago Classes"
 
 if(file.exists("classes.Rda") == TRUE) {
  load("classes.Rda")
@@ -61,6 +62,7 @@ print(new_classes)
 
 if(is.null(old_classes)) {
   old_classes <- new_classes[0,]
+  SUBJECT <- paste("(DATA REFRESH)", SUBJECT)
 }
 
 join_vars <- setdiff(names(new_classes), CHANGE_VARS)
@@ -108,7 +110,7 @@ if(nrow(to_email) > 0) {
     signup_link)
   send.mail(from = Sys.getenv("EMAIL_FROM"),
             to = strsplit(Sys.getenv("CC_RECIPIENTS"), split=",")[[1]],
-            subject = "Changes to Sail Chicago Classes",
+            subject = SUBJECT,
             body = email_body,
             smtp = list(host.name = "smtp.gmail.com", port = 465,
                         user.name = Sys.getenv("EMAIL_FROM"),
