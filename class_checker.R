@@ -47,7 +47,6 @@ new_classes <- classes0 %>%
     `Type`       = ifelse(temp_header, X1, NA),
     `Date`       = as.Date(str_replace(X1, TIME_PATTERN, ""), "%A, %B %d, %Y"),
     `Day`        = as.character(`Date`, format = "%A"),
-    `Date`       = as.character(`Date`),
     `Times`      = sapply(X1, function(x) str_match(x, TIME_PATTERN)[2]),
     `Boat type`  = sapply(X2, function(x) str_match(x, BOAT_PATTERN)[3]),
     `Boat name`  = sapply(X2, function(x) str_match(x, BOAT_PATTERN)[2]),
@@ -96,7 +95,16 @@ to_email <- to_email0 %>%
   filter(Type == "TillerTime") %>%
   filter(Date >= Sys.Date()) %>%
   filter(Change == TRUE) %>%
-  select(-Change)
+  select(-Change) %>%
+  transmute(
+    `Date`        = paste(as.character(Date, format="%a, %b %d"),
+                          Times,
+                          sep="<br>"),
+    `Boat`        = paste(`Boat name`, `Boat type`, sep="<br>"),
+    `Skipper`     = Skipper,
+    `Seats taken` = `Seats taken`,
+    `Status`      = Status
+  )
 
 if(nrow(to_email) > 0) {
   paste(Sys.time(), "Sending email")
