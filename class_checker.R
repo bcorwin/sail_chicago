@@ -90,6 +90,7 @@ for(var in CHANGE_VARS) {
 
 to_email <- to_email0 %>%
   filter(Type == "TillerTime") %>%
+  filter(Date >= Sys.Date()) %>%
   filter(Change == TRUE) %>%
   select(-Change)
 
