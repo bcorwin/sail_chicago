@@ -92,7 +92,7 @@ for(var in CHANGE_VARS) {
 }
 
 to_email <- to_email0 %>%
-  filter(Type %in% c("TillerTime", "Maintenance Sail")) %>%
+  filter(Type %in% c("TillerTime", "Maintenance Sail", "Cruise")) %>%
   filter(Date >= Sys.Date()) %>%
   filter(Change == TRUE) %>%
   select(-Change) %>%
