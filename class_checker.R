@@ -97,7 +97,6 @@ to_email <- to_email0 %>%
   filter(Change == TRUE) %>%
   select(-Change) %>%
   transmute(
-   `Type`        = `Type`,
     `Date`        = paste(as.character(Date, format="%a, %b %d"),
                           Times,
                           sep="<br>"),
